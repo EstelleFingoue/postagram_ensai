@@ -22,7 +22,7 @@ function Post({ post, removePost, updatePost }) {
             headers: { Authorization: getToken() },
             params: {
                 filename: attachment.name,
-                filetype: attachment.type,
+                filetype: attachment.type || "application/octet-stream",
                 postId: postId,
             },
         };
