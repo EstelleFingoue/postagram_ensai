@@ -18,7 +18,10 @@ def lambda_handler(event, context):
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     key = unquote_plus(event["Records"][0]["s3"]["object"]["key"])
     # Récupération de l'utilisateur et de l'id du post (format: user/id_publication/image_name)
-    user, post_id = key.split('/')[:2]
+    user_part, post_id_part = key.split('/')[:2]
+    # Préfixes USER# / POST# pour correspondre aux clés DynamoDB stockées par le webservice
+    user_key = user_part if user_part.startswith("USER#") else f"USER#{user_part}"
+    post_id_key = post_id_part if post_id_part.startswith("POST#") else f"POST#{post_id_part}"
     # Appel à Rekognition
     label_data = rekognition.detect_labels(
         Image={
@@ -36,8 +39,8 @@ def lambda_handler(event, context):
     # Mise à jour de la table DynamoDB (image = chemin S3, label = liste des labels)
     table.update_item(
         Key={
-            "user": user,
-            "id": post_id
+            "user": user_key,
+            "id": post_id_key
         },
         UpdateExpression="SET image = :img, #lbl = :labels",
         ExpressionAttributeNames={"#lbl": "label"},
