@@ -33,25 +33,37 @@ function Post({ post, removePost, updatePost }) {
     const submitFile = async () => {
         if (!attachment) {
             alert("Please select a file to upload.");
+            return;
         }
-        const postId = post.id.split("#")[1];
-        const uploadUrl = await getSignedUrlPut(postId);
+        try {
+            const postId = post.id.split("#")[1];
+            const uploadUrl = await getSignedUrlPut(postId);
 
-        const config = {
-            headers: { "Content-Type": attachment.type },
-        };
-        console.log(`Uploading to S3: ${uploadUrl}`);
+            const config = {
+                headers: { "Content-Type": attachment.type },
+            };
+            console.log(`Uploading to S3: ${uploadUrl}`);
 
-        var instance = axios.create();
-        delete instance.defaults.headers.common['Authorization'];
-        setLabeling(true)
+            var instance = axios.create();
+            delete instance.defaults.headers.common['Authorization'];
+            setLabeling(true);
 
-        const res = await instance.put(uploadUrl, attachment, config)
-        setTimeout(() => {
-            console.log(res.status); // HTTP status
-            setLabeling(false)
-            updatePost()
-          }, 2000);
+            const res = await instance.put(uploadUrl, attachment, config);
+            setTimeout(() => {
+                console.log(res.status);
+                setLabeling(false);
+                updatePost();
+            }, 2000);
+        } catch (err) {
+            setLabeling(false);
+            const msg = err.response?.data?.detail ?? err.message;
+            if (err.message === "Network Error" || !err.response) {
+                const base = axios.defaults.baseURL || "(non défini)";
+                alert(`Erreur réseau : le backend ne répond pas.\n\nBaseURL actuelle : ${base}\n\n• Vérifiez que cette URL s’ouvre dans le navigateur (ex. ${base}/posts).\n• Si oui, ouvrez les Outils de développement (F12) → Network, réessayez l’upload et regardez la requête « signedUrlPut » (statut et erreur CORS).`);
+            } else {
+                alert(Array.isArray(msg) ? msg.join(" ") : msg);
+            }
+        }
     }
 
     const deletePost = async () => {

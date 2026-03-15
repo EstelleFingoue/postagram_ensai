@@ -19,7 +19,6 @@ function SubmitPost({ updatePost }) {
         .catch((error) =>{
             console.log('Error', error.message);
         });
-  
     }
     return (
       <Form onSubmit={e => { handleSubmit(e) }}>
@@ -37,15 +36,15 @@ function SubmitPost({ updatePost }) {
             </Form.Group>
           </Col>
           <Col className="d-flex">
-  
+
             <Button variant="primary" type="submit" className='align-self-end' >
               Submit
             </Button>
           </Col>
         </Row>
-  
+
       </Form>
-  
+
     );
   }
 

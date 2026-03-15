@@ -66,8 +66,6 @@ bucket = os.getenv("BUCKET")
 ####################################################################################################
 
 
-
-
 @app.post("/posts")
 async def post_a_post(post: Post, authorization: str | None = Header(default=None)):
     """
@@ -152,7 +150,11 @@ async def delete_post(post_id: str, authorization: str | None = Header(default=N
 # Alias pour conformité au sujet (readme : GET /getSignedUrlPut) ; la webapp appelle /signedUrlPut.
 @app.get("/getSignedUrlPut")
 async def get_signed_url_put_alias(filename: str, filetype: str, postId: str, authorization: str | None = Header(default=None)):
-    return getSignedUrl(filename, filetype, postId, authorization)
+    try:
+        return getSignedUrl(filename, filetype, postId, authorization)
+    except Exception as e:
+        logger.exception("getSignedUrlPut failed")
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
 #################################################################################################
 ##                                                                                             ##
@@ -160,8 +162,12 @@ async def get_signed_url_put_alias(filename: str, filetype: str, postId: str, au
 ##                                                                                             ##
 ## 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 👇 ##
 @app.get("/signedUrlPut")
-async def get_signed_url_put(filename: str,filetype: str, postId: str,authorization: str | None = Header(default=None)):
-    return getSignedUrl(filename, filetype, postId, authorization)
+async def get_signed_url_put(filename: str, filetype: str, postId: str, authorization: str | None = Header(default=None)):
+    try:
+        return getSignedUrl(filename, filetype, postId, authorization)
+    except Exception as e:
+        logger.exception("signedUrlPut failed")
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080, log_level="debug")
