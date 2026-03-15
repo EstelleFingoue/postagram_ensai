@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from typing import Union
 import logging
 from boto3.dynamodb.conditions import Key
-from fastapi import FastAPI, Request, status, Header
+from fastapi import FastAPI, Request, status, Header, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,7 +27,13 @@ logger = logging.getLogger("uvicorn")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://web-alb-823642335.us-east-1.elb.amazonaws.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -121,19 +127,32 @@ async def get_all_posts(user: Union[str, None] = None):
     
 @app.delete("/posts/{post_id}")
 async def delete_post(post_id: str, authorization: str | None = Header(default=None)):
-    # Doit retourner le résultat de la requête la table dynamodb
     logger.info(f"post id : {post_id}")
     logger.info(f"user: {authorization}")
-    # Récupération des infos du poste
 
-    # S'il y a une image on la supprime de S3
+    user_key = f"USER#{authorization}" if authorization else None
+    post_id_key = post_id if post_id.startswith("POST#") else f"POST#{post_id}"
 
-    # Suppression de la ligne dans la base dynamodb
+    if not user_key:
+        raise HTTPException(status_code=401, detail="authorization header required")
 
-    # Retourne le résultat de la requête de suppression
-    return item
+    # Récupération du post pour savoir s'il a une image
+    try:
+        item = table.get_item(Key={"user": user_key, "id": post_id_key}).get("Item")
+    except Exception:
+        item = None
+    if item and item.get("image"):
+        s3_client.delete_object(Bucket=bucket, Key=item["image"])
+
+    res = table.delete_item(Key={"user": user_key, "id": post_id_key})
+    return res
 
 
+
+# Alias pour conformité au sujet (readme : GET /getSignedUrlPut) ; la webapp appelle /signedUrlPut.
+@app.get("/getSignedUrlPut")
+async def get_signed_url_put_alias(filename: str, filetype: str, postId: str, authorization: str | None = Header(default=None)):
+    return getSignedUrl(filename, filetype, postId, authorization)
 
 #################################################################################################
 ##                                                                                             ##

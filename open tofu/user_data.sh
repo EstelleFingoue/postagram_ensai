@@ -12,4 +12,4 @@ echo 'BUCKET=${bucket}' >> .env
 echo 'DYNAMO_TABLE=${dynamo_table}' >> .env
 pip3 install -r requirements.txt
 venv/bin/python app.py
-echo "userdata-end
+echo "userdata-end"

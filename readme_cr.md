@@ -47,3 +47,25 @@ Ce fichier contient le compte rendu du travail réalisé pour le devoir noté 2 
 
 - **lambda.tf** : Lambda postagram-rekognition, permission S3, notification bucket (events s3:ObjectCreated:*). Variable d’env TABLE = nom de la table DynamoDB.
 - **Lambda (console puis repo)** : Code récupéré dans `open tofu/lambda/lambda_function.py` : lecture bucket/key depuis l’event S3, extraction user/post_id, appel Rekognition detect_labels, update_item DynamoDB (image + label). Variable d’env TABLE utilisée dans le code.
+
+---
+
+## Étape 4 – Webservice DELETE /posts (terminée)
+
+- **Réalisation** : Implémentation de DELETE /posts/{post_id} dans `webservice/app.py`.
+- **Modifications** : Récupération du user depuis le header `authorization` (préfixe USER#), normalisation du post_id (préfixe POST# si absent). get_item sur la table pour récupérer le post ; si le champ `image` est présent, suppression de l’objet S3 correspondant avec `s3_client.delete_object`. Puis `table.delete_item(Key={"user": user_key, "id": post_id_key})` et retour du résultat. Si le header authorization est absent, retour HTTP 401 (HTTPException).
+
+---
+
+## Étape 5 – OpenTofu : EC2, ASG, Load Balancer (terminée)
+
+- **Réalisation** : Déploiement du webservice sur EC2 (1 à 4 instances) derrière un ALB (port 80 → 8080).
+- **Fichiers modifiés** : `config_base.tf` (ingress port 8080), `infra ec2.tf` (Launch Template, ASG, ALB, Target Group, Listener, output), `user_data.sh` (correction guillemet fermant).
+- **Détails** : Launch Template avec AMI ami-0ecb62995f68bb549, instance profile LabInstanceProfile (variable iam_instance_profile_name), user_data en base64 ; Target Group health_check path="/posts" pour éviter 502 ; ASG min 1, max 4, desired 1. Output load_balancer_dns_name utilisé pour les tests.
+- **Tests validés** : `curl http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts` retourne la liste des posts (JSON avec image et labels Rekognition).
+
+---
+
+## Étape 6 – groupe.md et URL webapp (terminée)
+
+- **Réalisation** : Fichier groupe.md créé à la racine avec les membres du groupe. Dans `webapp/src/index.js`, `axios.defaults.baseURL` mis à jour vers l’URL du Load Balancer (sans slash final) pour les tests sur AWS : `http://web-alb-823642335.us-east-1.elb.amazonaws.com`.

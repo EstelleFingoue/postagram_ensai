@@ -50,6 +50,15 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "HTTP 8080 webservice et health-check ALB"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+# Notes: port 8080 ajouté pour que le webservice (app.py) et le health-check du Target Group ALB soient accessibles depuis l’ALB.
+
   egress {
     description = "Tout trafic sortant"
     from_port   = 0

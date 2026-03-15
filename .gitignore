@@ -3,3 +3,9 @@ readme_cursor.md
 
 open tofu/.terraform
 open tofu/.terraform.lock.hcl
+open tofu/output/
+open tofu/*.tfstate
+open tofu/*.tfstate.backup
+webservice/.env
+webservice/__pycache__/
+webservice/venv/
