@@ -10,6 +10,7 @@ import uuid
 from dotenv import load_dotenv
 from typing import Union
 import logging
+from boto3.dynamodb.conditions import Key
 from fastapi import FastAPI, Request, status, Header
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -70,23 +71,52 @@ async def post_a_post(post: Post, authorization: str | None = Header(default=Non
     logger.info(f"body : {post.body}")
     logger.info(f"user : {authorization}")
 
-
-    # Doit retourner le résultat de la requête la table dynamodb
+    # Préfixes USER# / POST# comme recommandé par le sujet (éviter chevauchements)
+    user_key = f"USER#{authorization}"
+    post_id = f"POST#{uuid.uuid4()}"
+    item = {
+        "user": user_key,
+        "id": post_id,
+        "title": post.title,
+        "body": post.body,
+    }
+    res = table.put_item(Item=item)
     return res
+
+def _post_to_response(item: dict) -> dict:
+    """Formate un item DynamoDB en post pour l'API (sujet : user, id, title, body, image, label)."""
+    post = {
+        "user": item["user"],
+        "id": item["id"],
+        "title": item["title"],
+        "body": item["body"],
+        "image": "",
+        "label": item.get("label", []),
+    }
+    if item.get("image"):
+        post["image"] = s3_client.generate_presigned_url(
+            Params={"Bucket": bucket, "Key": item["image"]},
+            ClientMethod="get_object",
+            ExpiresIn=3600,
+        )
+    return post
+
 
 @app.get("/posts")
 async def get_all_posts(user: Union[str, None] = None):
     """
-    Récupère tout les postes. 
+    Récupère tout les postes.
     - Si un user est présent dans le requête, récupère uniquement les siens
     - Si aucun user n'est présent, récupère TOUS les postes de la table !!
     """
-    if user :
+    if user:
         logger.info(f"Récupération des postes de : {user}")
-    else :
+        response = table.query(KeyConditionExpression=Key("user").eq(f"USER#{user}"))
+    else:
         logger.info("Récupération de tous les postes")
-     # Doit retourner une liste de posts
-    return res[""]
+        response = table.scan()
+    items = response.get("Items", [])
+    return [_post_to_response(it) for it in items]
 
     
 @app.delete("/posts/{post_id}")

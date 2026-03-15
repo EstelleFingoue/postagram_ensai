@@ -1,4 +1,5 @@
 .DS_Store
+readme_cursor.md
 
 open tofu/.terraform
 open tofu/.terraform.lock.hcl
