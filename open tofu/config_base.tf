@@ -55,7 +55,7 @@ resource "aws_security_group" "web_sg" {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    security_groups = [aws_security_group.web_sg.id]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 # Notes: port 8080 ajouté pour que le webservice (app.py) et le health-check du Target Group ALB soient accessibles depuis l’ALB.
 
