@@ -40,7 +40,7 @@ function Post({ post, removePost, updatePost }) {
             const uploadUrl = await getSignedUrlPut(postId);
 
             const config = {
-                headers: { "Content-Type": attachment.type },
+                headers: { "Content-Type": attachment.type || "application/octet-stream" },
             };
             console.log(`Uploading to S3: ${uploadUrl}`);
 
@@ -48,12 +48,22 @@ function Post({ post, removePost, updatePost }) {
             delete instance.defaults.headers.common['Authorization'];
             setLabeling(true);
 
-            const res = await instance.put(uploadUrl, attachment, config);
-            setTimeout(() => {
-                console.log(res.status);
+            try {
+                const res = await instance.put(uploadUrl, attachment, config);
+                setTimeout(() => {
+                    console.log(res.status);
+                    setLabeling(false);
+                    updatePost();
+                }, 2000);
+            } catch (putErr) {
                 setLabeling(false);
-                updatePost();
-            }, 2000);
+                if (putErr.message === "Network Error" || !putErr.response) {
+                    alert("Erreur reseau lors de l'upload vers S3. Le backend a repondu (signedUrlPut 200) mais la requete PUT vers le bucket S3 echoue. Onglet Network : requete vers amazonaws.com (CORS ou statut).");
+                } else {
+                    alert(putErr.response?.data?.detail ?? putErr.message);
+                }
+                return;
+            }
         } catch (err) {
             setLabeling(false);
             const msg = err.response?.data?.detail ?? err.message;
