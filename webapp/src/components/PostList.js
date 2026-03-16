@@ -16,7 +16,7 @@ function PostList({ posts, updatePost }) {
     return (
       <Row xs={1} md={2} className="g-4">
         {postss.map((post) => (
-          <Post key={posts.id} post={post} removePost={removePostFromList} updatePost={updatePost} />
+          <Post key={post.id} post={post} removePost={removePostFromList} updatePost={updatePost} />
         )
         )}
       </Row>
