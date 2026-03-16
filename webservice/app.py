@@ -18,9 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 
-from getSignedUrl import getSignedUrl
-
 load_dotenv()
+from getSignedUrl import getSignedUrl
 
 app = FastAPI()
 logger = logging.getLogger("uvicorn")
