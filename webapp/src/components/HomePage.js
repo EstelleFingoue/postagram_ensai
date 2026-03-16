@@ -21,22 +21,18 @@ function HomePage({name}) {
      { headers: { Authorization: getToken()} ,
       params: { user: name } })
       .then(res => {
-        console.log(res.data)
         setUserPosts(res.data)
       })
       .catch((error) =>{
-        console.log('Error', error.message);
       });
   }
 
   const fetchAllPosts = async () => {
     axios.get("/posts", { headers: { Authorization: getToken()} })
       .then(res => {
-        console.log(res.data)
         setPosts(res.data)
       })
       .catch((error) =>{
-        console.log('Error', error.message);
       });
   }
 

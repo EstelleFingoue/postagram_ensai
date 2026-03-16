@@ -5,7 +5,6 @@ import axios from 'axios';
 function SubmitPost({ updatePost }) {
     const handleSubmit = (e) => {
       e.preventDefault();
-      console.log(e.target)
       axios.post("/posts",
         {
           title: e.target.title.value,
@@ -13,11 +12,9 @@ function SubmitPost({ updatePost }) {
         },
         { headers: { Authorization: getToken() } })
         .then((res) => {
-          console.log(JSON.stringify(res.data, null, 2));
           updatePost()
         })
         .catch((error) =>{
-            console.log('Error', error.message);
         });
     }
     return (

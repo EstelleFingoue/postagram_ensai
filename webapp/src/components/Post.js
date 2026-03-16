@@ -12,23 +12,24 @@ function Post({ post, removePost, updatePost }) {
     const fileChanged = (e) => {
         const files = e.target.files || e.dataTransfer.files;
         if (!files.length) return;
-        console.log(files[0]);
         setAttachment(files[0]);
     }
-    const getSignedUrlPut = async (postId) => {
-        console.log("Getting signed URL");
-        console.log(attachment.name)
+    const getSignedUrlPut = async (postId, filetype) => {
         const config = {
             headers: { Authorization: getToken() },
             params: {
                 filename: attachment.name,
-                filetype: attachment.type || "application/octet-stream",
+                filetype: filetype,
                 postId: postId,
             },
         };
 
         const response = await axios.get("/signedUrlPut", config);
-        return new URL(response.data.uploadURL);
+        const uploadURL = response.data?.uploadURL;
+        if (!uploadURL) {
+            throw new Error("Backend na pas renvoye uploadURL. Reponse: " + JSON.stringify(response.data));
+        }
+        return new URL(uploadURL);
     }
     const submitFile = async () => {
         if (!attachment) {
@@ -37,21 +38,21 @@ function Post({ post, removePost, updatePost }) {
         }
         try {
             const postId = post.id.split("#")[1];
-            const uploadUrl = await getSignedUrlPut(postId);
+            const filetype = attachment.type || "application/octet-stream";
+            const uploadUrl = await getSignedUrlPut(postId, filetype);
 
             const config = {
-                headers: { "Content-Type": attachment.type || "application/octet-stream" },
+                headers: { "Content-Type": filetype },
             };
-            console.log(`Uploading to S3: ${uploadUrl}`);
+            const putUrl = typeof uploadUrl === "string" ? uploadUrl : uploadUrl.href;
 
             var instance = axios.create();
             delete instance.defaults.headers.common['Authorization'];
             setLabeling(true);
 
             try {
-                const res = await instance.put(uploadUrl, attachment, config);
+                const res = await instance.put(putUrl, attachment, config);
                 setTimeout(() => {
-                    console.log(res.status);
                     setLabeling(false);
                     updatePost();
                 }, 2000);
@@ -78,15 +79,12 @@ function Post({ post, removePost, updatePost }) {
 
     const deletePost = async () => {
         const id = post.id.split("#")[1];
-        console.log(`/posts/${post.id}`)
         axios.delete(`/posts/${id}`, { headers: { Authorization: getToken() } })
             .then(res => {
-                console.log(post.id);
                 setShowCard(false);
             })
             .catch((error) =>{
-                console.log('Error', error.message);
-                });;
+            });
 
     };
 

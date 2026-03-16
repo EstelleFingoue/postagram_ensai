@@ -158,7 +158,6 @@ async def get_signed_url_put_alias(filename: str, filetype: str, postId: str, au
         )
     bucket = os.getenv("BUCKET")
     if not bucket:
-        logger.error("BUCKET (env) non défini")
         return JSONResponse(
             status_code=503,
             content={"detail": "Configuration serveur : BUCKET manquant"},
@@ -166,7 +165,6 @@ async def get_signed_url_put_alias(filename: str, filetype: str, postId: str, au
     try:
         return getSignedUrl(filename, filetype, postId, authorization)
     except Exception as e:
-        logger.exception("getSignedUrlPut failed")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 #################################################################################################
@@ -185,7 +183,6 @@ async def get_signed_url_put(filename: str, filetype: str, postId: str, authoriz
         )
     bucket = os.getenv("BUCKET")
     if not bucket:
-        logger.error("BUCKET (env) non défini")
         return JSONResponse(
             status_code=503,
             content={"detail": "Configuration serveur : BUCKET manquant"},
@@ -193,7 +190,6 @@ async def get_signed_url_put(filename: str, filetype: str, postId: str, authoriz
     try:
         return getSignedUrl(filename, filetype, postId, authorization)
     except Exception as e:
-        logger.exception("signedUrlPut failed")
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 if __name__ == "__main__":
