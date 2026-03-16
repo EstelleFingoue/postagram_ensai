@@ -50,7 +50,9 @@ npm install
 npm start
 ```
 
-Ouvrir http://localhost:3000 dans le navigateur. L’API est appelée via l’ALB (URL déjà configurée dans `webapp/src/index.js`).
+Ouvrir http://localhost:3000 dans le navigateur. L’API est appelée via l’ALB (URL déjà configurée dans `webapp/src/index.js`). Voici une capture de l’application lorsqu’elle fonctionne :
+
+![Capture de l’application web](img/capture_web_app.png)
 
 **4. Tester les endpoints (optionnel)**
 
