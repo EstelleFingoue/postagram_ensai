@@ -13,7 +13,62 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 ![Architecture cible TP noté](img/architecture%20cible%20TP%20noté.png)
 
-**Comment utiliser ce compte rendu :** les sections suivent l’ordre chronologique des étapes du TP. Pour chaque étape sont listés les fichiers modifiés ; pour chaque fichier sont indiqués les blocs ou lignes modifiés, les valeurs mises et la raison du choix. En suivant cet ordre, on peut reproduire le TP de zéro et comprendre chaque modification.
+**Comment utiliser ce compte rendu :** ce document comporte deux parties. La **première** donne les commandes pour lancer et tester la solution en l’état (scénario où l’on souhaite directement faire tourner l’application et la tester). La **seconde** décrit étape par étape ce qui a été fait pour réaliser le TP et comment le reproduire (fichiers modifiés, valeurs, raison des choix).
+
+---
+
+## Lancer et tester la solution (état actuel)
+
+Pour lancer l’application et la tester à partir du dépôt (AWS configuré, OpenTofu installé, Python 3 et Node/npm disponibles) :
+
+**1. Déployer l’infrastructure**
+
+```bash
+cd "open tofu"
+tofu init
+tofu apply
+```
+
+À la fin de `tofu apply`, noter les valeurs des outputs `bucketname` et `dynamotablename`.
+
+**2. Configurer le webservice**
+
+Créer le fichier `webservice/.env` avec les deux variables (en utilisant les noms affichés en sortie de l’étape précédente) :
+
+```
+DYNAMO_TABLE=<dynamotablename>
+BUCKET=<bucketname>
+```
+
+**3. Tester via l’application web**
+
+La webapp est configurée pour appeler le Load Balancer. Lancer l’interface :
+
+```bash
+cd webapp
+npm install
+npm start
+```
+
+Ouvrir http://localhost:3000 dans le navigateur. L’API est appelée via l’ALB (URL déjà configurée dans `webapp/src/index.js`).
+
+**4. Tester les endpoints (optionnel)**
+
+Pour vérifier l’API directement, utiliser par exemple :
+
+```bash
+curl -s http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts
+```
+
+D’autres exemples de commandes curl sont donnés dans la section « Étape 7/8 – Vérification et rendu » et dans le cheatsheet en fin de document.
+
+**Test du backend en local (optionnel)** : dans `webservice`, créer le venv (`python3 -m venv venv`), installer les dépendances (`venv/bin/pip install -r requirements.txt`), puis lancer `venv/bin/python app.py` et tester avec `curl http://localhost:8080/posts`, etc.
+
+---
+
+## Reproduction étape par étape
+
+La section suivante détaille les modifications réalisées pour le TP et comment les reproduire, étape par étape.
 
 ---
 
@@ -23,14 +78,19 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 **Fichiers créés/modifiés :**
 
-| Fichier        | Lignes / bloc | Valeurs                                                                                                                                 | Raison                                                                                          |
-| -------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `readme_cr.md` | (création)    | Ce compte rendu                                                                                                                         | Livrable demandé par le sujet.                                                                  |
-| `.gitignore`   | (ajouts)      | `readme_cursor.md`, `open tofu/.terraform`, `open tofu/output/`, `open tofu/*.tfstate`, `open tofu/*.tfstate.backup`, `webservice/.env`, `webservice/venv/`, `webservice/__pycache__/`, `.DS_Store` | Ne pas versionner fichiers temporaires, états OpenTofu, secrets, environnements virtuels et caches. |
+- **Fichier :** `readme_cr.md`  
+  Modification : création.  
+  Valeurs : ce compte rendu.  
+  Raison : livrable demandé par le sujet.
+
+- **Fichier :** `.gitignore`  
+  Modification : ajouts.  
+  Valeurs : `readme_cursor.md`, `open tofu/.terraform`, `open tofu/output/`, `open tofu/*.tfstate`, `open tofu/*.tfstate.backup`, `webservice/.env`, `webservice/venv/`, `webservice/__pycache__/`, `.DS_Store`.  
+  Raison : ne pas versionner fichiers temporaires, états OpenTofu, secrets, environnements virtuels et caches.
 
 **Commandes exécutées :** aucune (création et édition de fichiers uniquement).
 
-**Critères de fin :** existence de `readme_cr.md`, `.gitignore` à jour.
+**Vérification :** Nous avons créé readme_cr.md et mis à jour le .gitignore.
 
 ---
 
@@ -44,22 +104,31 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 ### open tofu/s3.tf
 
-| Bloc / lignes                                                | Modification   | Valeurs                                                                                          | Raison                                                                                                                                                          |
-| ------------------------------------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resource "aws_s3_bucket" "bucket"`                          | Ajout (l.3–6)  | `bucket_prefix = "postagram-"`, `force_destroy = true`                                           | **bucket_prefix** : génère un nom unique (ex. postagram-xxx) et évite les conflits de noms globaux S3. **force_destroy** : permet de vider et supprimer le bucket avec `tofu destroy` (utile en TP / dev). |
-| `output "bucketname"`                                         | Ajout (l.10–13) | `value = aws_s3_bucket.bucket.bucket`                                                            | Expose le nom du bucket pour user_data (webservice) et Lambda (variables d’environnement).                                                                      |
-| `resource "aws_s3_bucket_cors_configuration" "cors_bucket"`    | Ajout (l.17–25) | `allowed_headers = ["*"]`, `allowed_methods = ["GET", "HEAD", "PUT"]`, `allowed_origins = ["*"]` | CORS obligatoire pour que la webapp (navigateur) envoie des requêtes PUT vers S3 (upload direct depuis le front).                                                |
+- **Bloc `resource "aws_s3_bucket" "bucket"`** (l.3–6)  
+  Valeurs : `bucket_prefix = "postagram-"`, `force_destroy = true`.  
+  Raison : bucket_prefix génère un nom unique (ex. postagram-xxx) et évite les conflits de noms globaux S3 ; force_destroy permet de vider et supprimer le bucket avec `tofu destroy` (utile en TP / dev).
+
+- **Bloc `output "bucketname"`** (l.10–13)  
+  Valeurs : `value = aws_s3_bucket.bucket.bucket`.  
+  Raison : expose le nom du bucket pour user_data (webservice) et Lambda (variables d’environnement).
+
+- **Bloc `resource "aws_s3_bucket_cors_configuration" "cors_bucket"`** (l.17–25)  
+  Valeurs : `allowed_headers = ["*"]`, `allowed_methods = ["GET", "HEAD", "PUT"]`, `allowed_origins = ["*"]`.  
+  Raison : CORS obligatoire pour que la webapp (navigateur) envoie des requêtes PUT vers S3 (upload direct depuis le front).
 
 ### open tofu/dynamodb.tf
 
-| Bloc / lignes                                          | Modification   | Valeurs                                                                                                                                                                           | Raison                                                                                             |
-| ------------------------------------------------------ | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `resource "aws_dynamodb_table" "basic-dynamodb-table"` | Ajout (l.3–20) | `name = "postagram-posts"`, `hash_key = "user"`, `range_key = "id"`, `billing_mode = "PROVISIONED"`, `read_capacity = 5`, `write_capacity = 5`, attributs `user` et `id` (type S) | Sujet : partition par utilisateur (user), tri par id du post. Préfixes USER# / POST# utilisés dans le code Python. |
-| `output "dynamotablename"`                             | Ajout (l.24–27) | `value = aws_dynamodb_table.basic-dynamodb-table.name`                                                                                                                            | Nom de la table pour .env (webservice) et Lambda (variable TABLE).                                |
+- **Bloc `resource "aws_dynamodb_table" "basic-dynamodb-table"`** (l.3–20)  
+  Valeurs : `name = "postagram-posts"`, `hash_key = "user"`, `range_key = "id"`, `billing_mode = "PROVISIONED"`, `read_capacity = 5`, `write_capacity = 5`, attributs `user` et `id` (type S).  
+  Raison : sujet — partition par utilisateur (user), tri par id du post ; préfixes USER# / POST# utilisés dans le code Python.
+
+- **Bloc `output "dynamotablename"`** (l.24–27)  
+  Valeurs : `value = aws_dynamodb_table.basic-dynamodb-table.name`.  
+  Raison : nom de la table pour .env (webservice) et Lambda (variable TABLE).
 
 **Commandes exécutées :** `cd "open tofu"`, `tofu init`, `tofu apply`.
 
-**Critères de fin :** `tofu apply` réussi ; outputs `bucketname` et `dynamotablename` affichés. Noter ces noms pour l’étape 2 (fichier `.env`).
+**Vérification :** `tofu apply` a réussi et les outputs `bucketname` et `dynamotablename` ont été affichés. Nous avons noté ces noms pour compléter le fichier .env à l’étape suivante.
 
 ---
 
@@ -73,23 +142,36 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 ### webservice/app.py
 
-| Lignes / bloc        | Modification                                      | Valeurs / code                                                                                                                                                                 | Raison                                                                                                                      |
-| -------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| Import               | Ajout                                             | `from boto3.dynamodb.conditions import Key`                                                                                                                                    | Requêtes DynamoDB (query avec KeyConditionExpression).                                                                      |
-| Ordre chargement env | `load_dotenv()` avant `from getSignedUrl import getSignedUrl` | —                                                                                                                                                                              | getSignedUrl utilise `os.getenv("BUCKET")` à l’import ; sans load_dotenv avant, BUCKET est None → erreur sur presigned URL. |
-| POST /posts          | Bloc route (l.68–88)                              | user_key = USER# + authorization, post_id = POST# + uuid4(), item (user, id, title, body), `table.put_item(Item=item)`                                                          | Sujet : format user/id avec préfixes ; retour attendu par l’IHM.                                                            |
-| GET /posts           | Bloc route (l.109–124)                            | Paramètre optionnel `user` ; si présent `table.query(Key("user").eq("USER#" + user))`, sinon `table.scan()` ; formatage avec _post_to_response (URL présignée si image, label)   | Sujet : filtre par user ou liste globale ; format réponse avec image et label pour l’IHM.                                   |
-| Helper               | `_post_to_response` (l.90–106)                     | Génère URL présignée S3 et format (user, id, title, body, image, label)                                                                                                        | Éviter duplication et garder format IHM cohérent.                                                                            |
+- **Import**  
+  Modification : ajout.  
+  Valeurs : `from boto3.dynamodb.conditions import Key`.  
+  Raison : requêtes DynamoDB (query avec KeyConditionExpression).
+
+- **Ordre chargement env**  
+  Modification : `load_dotenv()` avant `from getSignedUrl import getSignedUrl`.  
+  Raison : getSignedUrl utilise `os.getenv("BUCKET")` à l’import ; sans load_dotenv avant, BUCKET est None → erreur sur presigned URL.
+
+- **POST /posts** (l.68–88)  
+  Valeurs : user_key = USER# + authorization, post_id = POST# + uuid4(), item (user, id, title, body), `table.put_item(Item=item)`.  
+  Raison : sujet — format user/id avec préfixes ; retour attendu par l’IHM.
+
+- **GET /posts** (l.109–124)  
+  Valeurs : paramètre optionnel `user` ; si présent `table.query(Key("user").eq("USER#" + user))`, sinon `table.scan()` ; formatage avec _post_to_response (URL présignée si image, label).  
+  Raison : sujet — filtre par user ou liste globale ; format réponse avec image et label pour l’IHM.
+
+- **Helper `_post_to_response`** (l.90–106)  
+  Valeurs : génère URL présignée S3 et format (user, id, title, body, image, label).  
+  Raison : éviter duplication et garder format IHM cohérent.
 
 ### webservice/.env (création)
 
-| Ligne     | Valeurs                                                 | Raison                                                      |
-| --------- | ------------------------------------------------------- | ----------------------------------------------------------- |
-| (fichier) | `DYNAMO_TABLE=<dynamotablename>`, `BUCKET=<bucketname>` | Valeurs issues des outputs de l’étape 1 ; ne pas committer. |
+- **Fichier :** `webservice/.env`  
+  Valeurs : `DYNAMO_TABLE=<dynamotablename>`, `BUCKET=<bucketname>` (issus des outputs de l’étape 1).  
+  Raison : ne pas committer ; nécessaire pour le webservice.
 
 **Environnement :** création du venv dans `webservice` (`python3 -m venv venv` ou `python3.10 -m venv venv`), puis `pip install -r requirements.txt`. Lancer le webservice avec `venv/bin/python app.py` (ou `source venv/bin/activate` puis `python app.py`).
 
-**Critères de fin :** POST /posts et GET /posts fonctionnent en local ; `.env` présent avec DYNAMO_TABLE et BUCKET.
+**Vérification :** Nous avons vérifié que POST /posts et GET /posts fonctionnent en local, avec le .env contenant DYNAMO_TABLE et BUCKET.
 
 ---
 
@@ -101,25 +183,43 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 ### open tofu/lambda.tf
 
-| Bloc / lignes                                                 | Modification | Valeurs                                                                                                                                                             | Raison                                                                    |
-| ------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `data "archive_file" "lambda_dir"`                            | l.5–9        | source_dir = lambda, output_path = output/function.zip                                                                                                              | Empaqueter le code Python pour la Lambda.                                 |
-| `resource "aws_lambda_function" "lambda_function"`            | l.12–35      | function_name = "postagram-rekognition", role = LabRole, handler = "lambda_function.lambda_handler", runtime = "python3.13", environment TABLE = nom table DynamoDB | Déclencher sur S3 ; variable TABLE pour que la Lambda connaisse la table.  |
-| `resource "aws_lambda_permission" "allow_from_S3"`            | l.39–46      | action Lambda Invoke, principal s3.amazonaws.com, source_arn = bucket                                                                                               | Autoriser S3 à appeler la Lambda.                                          |
-| `resource "aws_s3_bucket_notification" "bucket_notification"` | l.50–57      | events = ["s3:ObjectCreated:*"], lambda_function_arn                                                                                                                | Déclencher la Lambda à chaque dépôt d’objet dans le bucket.                |
+- **Bloc `data "archive_file" "lambda_dir"`** (l.5–9)  
+  Valeurs : source_dir = lambda, output_path = output/function.zip.  
+  Raison : empaqueter le code Python pour la Lambda.
+
+- **Bloc `resource "aws_lambda_function" "lambda_function"`** (l.12–35)  
+  Valeurs : function_name = "postagram-rekognition", role = LabRole, handler = "lambda_function.lambda_handler", runtime = "python3.13", environment TABLE = nom table DynamoDB.  
+  Raison : déclencher sur S3 ; variable TABLE pour que la Lambda connaisse la table.
+
+- **Bloc `resource "aws_lambda_permission" "allow_from_S3"`** (l.39–46)  
+  Valeurs : action Lambda Invoke, principal s3.amazonaws.com, source_arn = bucket.  
+  Raison : autoriser S3 à appeler la Lambda.
+
+- **Bloc `resource "aws_s3_bucket_notification" "bucket_notification"`** (l.50–57)  
+  Valeurs : events = ["s3:ObjectCreated:*"], lambda_function_arn.  
+  Raison : déclencher la Lambda à chaque dépôt d’objet dans le bucket.
 
 ### open tofu/lambda/lambda_function.py
 
-| Lignes / bloc | Modification | Valeurs                                                        | Raison                                                           |
-| ------------- | ------------ | -------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Lecture event | l.17–18      | bucket/key depuis event["Records"][0]["s3"], unquote_plus(key) | Format event S3 ; unquote_plus pour les clés avec espaces.        |
-| Clés DynamoDB | l.20–24      | user_key, post_id_key avec préfixes USER# / POST# si besoin    | Aligner avec les clés stockées par le webservice.                |
-| Rekognition   | l.25–36      | detect_labels, MaxLabels=5, MinConfidence=0.75                 | Sujet : détection de labels sur l’image.                         |
-| DynamoDB      | l.38–50      | update_item SET image = :img, label = :labels                  | Stocker le chemin S3 et la liste des labels dans l’item du post. |
+- **Lecture event** (l.17–18)  
+  Valeurs : bucket/key depuis event["Records"][0]["s3"], unquote_plus(key).  
+  Raison : format event S3 ; unquote_plus pour les clés avec espaces.
 
-**Commandes exécutées :** `tofu apply` depuis `open tofu`. Test : déposer un fichier dans le bucket (console AWS ou CLI) et vérifier que les labels apparaissent dans l’item DynamoDB.
+- **Clés DynamoDB** (l.20–24)  
+  Valeurs : user_key, post_id_key avec préfixes USER# / POST# si besoin.  
+  Raison : aligner avec les clés stockées par le webservice.
 
-**Critères de fin :** Lambda invoquée à chaque upload ; labels écrits en DynamoDB.
+- **Rekognition** (l.25–36)  
+  Valeurs : detect_labels, MaxLabels=5, MinConfidence=0.75.  
+  Raison : sujet — détection de labels sur l’image.
+
+- **DynamoDB** (l.38–50)  
+  Valeurs : update_item SET image = :img, label = :labels.  
+  Raison : stocker le chemin S3 et la liste des labels dans l’item du post.
+
+**Commandes exécutées :** `tofu apply` depuis `open tofu`. Nous avons testé en déposant un fichier dans le bucket (console AWS ou CLI) et en vérifiant que les labels apparaissent dans l’item DynamoDB.
+
+**Vérification :** Nous avons constaté que la Lambda est invoquée à chaque upload et que les labels sont bien écrits en DynamoDB.
 
 ---
 
@@ -129,11 +229,12 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 **Fichiers modifiés :** `webservice/app.py`.
 
-| Lignes / bloc           | Modification   | Valeurs                                                                                                                                                                      | Raison                                                                     |
-| ----------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| DELETE /posts/{post_id}  | Route (l.127–147) | authorization → user_key (USER#), normalisation post_id (POST# si absent), get_item pour récupérer le post ; si champ image alors s3_client.delete_object ; puis table.delete_item ; si pas authorization → 401 | Sujet : suppression du post en DynamoDB et de l’image dans S3 si présente. |
+- **Route DELETE /posts/{post_id}** (l.127–147)  
+  Modification : ajout de la route.  
+  Valeurs : authorization → user_key (USER#), normalisation post_id (POST# si absent), get_item pour récupérer le post ; si champ image alors s3_client.delete_object ; puis table.delete_item ; si pas authorization → 401.  
+  Raison : sujet — suppression du post en DynamoDB et de l’image dans S3 si présente.
 
-**Critères de fin :** suppression du post en base et de l’objet S3 si une image était associée ; 401 si header authorization absent.
+**Vérification :** Nous avons vérifié que la suppression du post en base et de l’objet S3 (si une image était associée) fonctionne, et que l’API renvoie bien 401 en l’absence du header authorization.
 
 ---
 
@@ -145,47 +246,61 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 ### open tofu/config_base.tf
 
-| Lignes | Modification | Valeurs                                             | Raison                                                                                |
-| ------ | ------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| 52–58  | Bloc ingress | from_port 8080, to_port 8080, cidr_blocks 0.0.0.0/0 | Webservice et health-check ALB sur port 8080 ; sans cela le Target Group reste unhealthy (502). |
+- **Bloc ingress** (l.52–58)  
+  Valeurs : from_port 8080, to_port 8080, cidr_blocks 0.0.0.0/0.  
+  Raison : webservice et health-check ALB sur port 8080 ; sans cela le Target Group reste unhealthy (502).
 
 ### open tofu/infra ec2.tf
 
-| Bloc / lignes                                 | Modification | Valeurs                                                                                                           | Raison                                                              |
-| --------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| variable git_repo / iam_instance_profile_name | l.4–13       | git_repo = URL du dépôt, iam_instance_profile_name = "LabInstanceProfile"                                         | Adapter le repo ; LabInstanceProfile pour AWS Academy.               |
-| aws_launch_template                           | l.19–54      | AMI ami-0ecb62995f68bb549, t3.micro, key_name vockey, user_data avec templatefile(bucket, dynamo_table, git_repo) | Sujet : instances avec user_data pour clone, .env et lancement app.   |
-| aws_autoscaling_group                         | l.59–78      | desired 1, min 1, max 4, health_check_type ELB, target_group_arns                                                 | Sujet : 1 à 4 instances ; health-check via ALB sur 8080.           |
-| aws_lb, aws_lb_target_group                   | l.83–117     | ALB application, TG port 8080, health_check path = "/posts"                                                       | Webservice sur 8080 ; /posts évite 404 (pas de GET /).               |
-| aws_lb_listener                               | l.122–132    | port 80, forward vers TG                                                                                          | Accès HTTP standard.                                                |
-| output load_balancer_dns_name                 | l.137–141    | value = aws_lb.web_alb.dns_name                                                                                   | URL pour tests et baseURL webapp.                                   |
+- **Variables git_repo / iam_instance_profile_name** (l.4–13)  
+  Valeurs : git_repo = URL du dépôt, iam_instance_profile_name = "LabInstanceProfile".  
+  Raison : adapter le repo ; LabInstanceProfile pour AWS Academy.
+
+- **Bloc aws_launch_template** (l.19–54)  
+  Valeurs : AMI ami-0ecb62995f68bb549, t3.micro, key_name vockey, user_data avec templatefile(bucket, dynamo_table, git_repo).  
+  Raison : sujet — instances avec user_data pour clone, .env et lancement app.
+
+- **Bloc aws_autoscaling_group** (l.59–78)  
+  Valeurs : desired 1, min 1, max 4, health_check_type ELB, target_group_arns.  
+  Raison : sujet — 1 à 4 instances ; health-check via ALB sur 8080.
+
+- **Blocs aws_lb, aws_lb_target_group** (l.83–117)  
+  Valeurs : ALB application, TG port 8080, health_check path = "/posts".  
+  Raison : webservice sur 8080 ; /posts évite 404 (pas de GET /).
+
+- **Bloc aws_lb_listener** (l.122–132)  
+  Valeurs : port 80, forward vers TG.  
+  Raison : accès HTTP standard.
+
+- **Output load_balancer_dns_name** (l.137–141)  
+  Valeurs : value = aws_lb.web_alb.dns_name.  
+  Raison : URL pour tests et baseURL webapp.
 
 ### open tofu/user_data.sh
 
-| Lignes | Modification | Valeurs                                                                                                 | Raison                                                                                      |
-| ------ | ------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 6–14   | Script       | clone ${git_repo}, cd webservice, .env avec BUCKET et DYNAMO_TABLE, pip install, venv/bin/python app.py | Bootstrap des instances : même code et config que le sujet ; guillemets corrects pour .env. |
+- **Script** (l.6–14)  
+  Valeurs : clone ${git_repo}, cd webservice, .env avec BUCKET et DYNAMO_TABLE, pip install, venv/bin/python app.py.  
+  Raison : bootstrap des instances : même code et config que le sujet ; guillemets corrects pour .env.
 
 **Commandes exécutées :** `tofu apply` depuis `open tofu` ; récupérer l’URL du Load Balancer (output `load_balancer_dns_name`).
 
-**Critères de fin :** Instances en état healthy derrière l’ALB ; `curl http://<ALB_DNS>/posts` retourne du JSON.
+**Vérification :** Les instances sont passées en état healthy derrière l’ALB ; nous avons vérifié que curl sur /posts retourne bien du JSON.
 
 ---
 
-## Étape 6 – groupe.md et URL webapp
+## Étape 6 – URL webapp
 
-**Objectif :** renseigner les membres du groupe et configurer la webapp pour les tests sur AWS (sujet).
+**Objectif :** configurer la webapp pour les tests sur AWS (sujet).
 
-**Fichiers modifiés :** `groupe.md`, `webapp/src/index.js`.
+**Fichiers modifiés :** `webapp/src/index.js`.
 
-| Fichier             | Lignes     | Valeurs                                                   | Raison                                                          |
-| ------------------- | ---------- | --------------------------------------------------------- | --------------------------------------------------------------- |
-| groupe.md           | (création) | Liste des membres (Estelle Danielle FINGOUE, Rosine SORO) | Sujet : identification du groupe.                               |
-| webapp/src/index.js | 12         | axios.defaults.baseURL = "http://<ALB_DNS>" (sans slash final) | Pointer la webapp vers le Load Balancer pour les tests sur AWS. |
+- **Fichier :** `webapp/src/index.js` (l.12)  
+  Modification : `axios.defaults.baseURL` vers l’URL du Load Balancer (sans slash final), ex. `"http://web-alb-823642335.us-east-1.elb.amazonaws.com"`.  
+  Raison : pointer la webapp vers le Load Balancer pour les tests sur AWS.
 
-**Commandes exécutées :** aucune (édition des fichiers). Pour tester : `npm install` puis `npm start` dans `webapp`, et utiliser l’URL du Load Balancer.
+**Commandes exécutées :** aucune (édition du fichier). Pour tester : `npm install` puis `npm start` dans `webapp`, et utiliser l’URL du Load Balancer.
 
-**Critères de fin :** groupe.md présent ; baseURL pointant vers l’ALB.
+**Vérification :** Nous avons configuré la baseURL de la webapp pour qu’elle pointe vers l’ALB.
 
 ---
 
@@ -195,54 +310,81 @@ L’architecture ci-dessous rappelle le flux de l’application : l’utilisateu
 
 **Résumé des tests :** POST /posts, GET /posts (avec et sans filtre user), DELETE /posts/{post_id}, GET signedUrlPut puis upload S3, affichage des images et des labels Rekognition dans l’IHM.
 
-**Rappel rendu :** archive (ex. .zip) avec le code OpenTofu et le webservice, selon les consignes du sujet. Aucune modification de code supplémentaire à décrire ici si tout est déjà couvert dans les étapes précédentes.
+**Commandes curl pour vérifier les endpoints**
+
+URL du Load Balancer utilisée dans les exemples : `web-alb-823642335.us-east-1.elb.amazonaws.com`.
+
+- **GET /posts** (tous les posts) — vérifier que l’API renvoie la liste des posts :
+  ```bash
+  curl -s http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts
+  ```
+
+- **GET /posts?user=...** (posts d’un utilisateur) — vérifier le filtre par user :
+  ```bash
+  curl -s "http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts?user=estelle"
+  ```
+
+- **POST /posts** (création d’un post) — vérifier la création :
+  ```bash
+  curl -X POST http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts -H "Content-Type: application/json" -H "authorization: estelle" -d '{"title":"Titre","body":"Corps"}'
+  ```
+
+- **DELETE /posts/{post_id}** — vérifier la suppression (remplacer `<post_id>` par un id existant, ex. POST#uuid) :
+  ```bash
+  curl -X DELETE "http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts/POST%23<uuid>" -H "authorization: estelle"
+  ```
+
+- **GET signedUrlPut** (URL présignée pour upload S3) — vérifier que le backend renvoie une URL :
+  ```bash
+  curl -s "http://web-alb-823642335.us-east-1.elb.amazonaws.com/signedUrlPut?filename=test.jpg&filetype=image/jpeg&postId=POST%23<uuid>" -H "authorization: estelle"
+  ```
+
+**Rappel rendu :** archive (ex. .zip) avec le code OpenTofu et le webservice, selon les consignes du sujet.
 
 ---
 
 ## Correctifs et améliorations (post-TP)
 
-Modifications effectuées après les étapes principales pour faire fonctionner ou stabiliser l’application. Même format : fichier → lignes/bloc modifiés → valeurs → raison.
+Modifications effectuées après les étapes principales pour faire fonctionner ou stabiliser l’application (backend uniquement).
 
 ### webservice/app.py
 
-| Lignes / bloc | Modification | Valeurs | Raison |
-| -------------- | ------------- | ------- | ------ |
-| Ordre chargement | load_dotenv() puis import getSignedUrl | — | Déjà documenté en Étape 2 : BUCKET doit être chargé avant l’import de getSignedUrl. |
-| Routes signedUrlPut (GET /getSignedUrlPut, GET /signedUrlPut) | Validation et gestion d’erreurs | Vérification authorization (sinon 401), filename/filetype/postId non vides (sinon 400), BUCKET défini (sinon 503) ; try/except autour de getSignedUrl avec retour 500 et détail | Éviter erreurs "expected string or bytes-like object, got NoneType" et renvoyer des réponses HTTP claires. |
+- **Ordre chargement**  
+  Modification : `load_dotenv()` puis `from getSignedUrl import getSignedUrl`.  
+  Raison : déjà documenté en Étape 2 — BUCKET doit être chargé avant l’import de getSignedUrl.
 
-### webapp – Post.js
-
-| Lignes / bloc | Modification | Valeurs | Raison |
-| -------------- | ------------- | ------- | ------ |
-| Appel getSignedUrlPut | Passage de filetype | filetype passé en paramètre et utilisé pour le Content-Type du PUT S3 | Signature S3 et Content-Type doivent correspondre. |
-| PUT S3 | URL en chaîne | putUrl = uploadUrl.href (string) pour instance.put(putUrl, ...) | Éviter problèmes cross-origin avec l’objet URL dans axios. |
-| Vérification | uploadURL | Si response.data?.uploadURL absent, lever une erreur explicite | Éviter crash cryptique si la réponse backend est incomplète. |
-| Gestion d’erreurs | try/catch | try/catch séparé pour le PUT S3 avec message explicite (backend OK / échec S3) | Distinguer erreur backend et erreur upload S3. |
-| Nettoyage | Ponctuation | Correction de `});;` en `});` | Erreur de syntaxe. |
-
-### webapp – PostList.js
-
-| Lignes / bloc | Modification | Valeurs | Raison |
-| -------------- | ------------- | ------- | ------ |
-| key React | key={post.id} | Au lieu de key={posts.id} | Clé unique par élément pour React (éviter warning et bugs de rendu). |
-
-### open tofu/s3.tf
-
-| Bloc | Modification | Valeurs | Raison |
-| ---- | ------------- | ------- | ------ |
-| aws_s3_bucket_cors_configuration | Déjà documenté en Étape 1 | allowed_origins = ["*"], allowed_methods incluant PUT | CORS nécessaire pour l’upload direct depuis le navigateur vers S3. |
-
-### Nettoyage des logs
-
-| Fichier | Modification | Valeurs | Raison |
-| ------- | ------------- | ------- | ------ |
-| Post.js, SubmitPost.js, HomePage.js | Suppression | Tous les console.log retirés | Repo propre pour le rendu. |
-| webservice/app.py | Suppression | logger.error / logger.exception superflus dans les routes signedUrlPut (si ajoutés en debug) | Idem. |
+- **Routes signedUrlPut (GET /getSignedUrlPut, GET /signedUrlPut)**  
+  Modification : validation et gestion d’erreurs.  
+  Valeurs : vérification authorization (sinon 401), filename/filetype/postId non vides (sinon 400), BUCKET défini (sinon 503) ; try/except autour de getSignedUrl avec retour 500 et détail.  
+  Raison : éviter erreurs "expected string or bytes-like object, got NoneType" et renvoyer des réponses HTTP claires.
 
 ---
 
-## Annexes (optionnel)
+## Cheatsheet des commandes
 
-- **Récapitulatif des commandes :** `tofu init`, `tofu apply` (dans `open tofu`) ; lancement webservice : `venv/bin/python app.py` dans `webservice` ; lancement webapp : `npm install` puis `npm start` dans `webapp`. Exemples curl : POST /posts avec header authorization, GET /posts, GET /posts?user=..., DELETE /posts/{post_id}.
-- **Contenu type du .env :** DYNAMO_TABLE=postagram-posts, BUCKET=postagram-xxxx (sans committer le fichier).
-- **Format de réponse GET /posts :** liste d’objets avec user, id, title, body, image (URL présignée ou ""), label (liste), pour alignement avec l’IHM.
+Aide-mémoire : commande et rôle.
+
+**OpenTofu (infra AWS)**
+
+- `cd "open tofu"` — Se placer dans le dossier OpenTofu.
+- `tofu init` — Initialiser le projet (télécharger providers, etc.).
+- `tofu apply` — Créer ou mettre à jour les ressources AWS (S3, DynamoDB, Lambda, EC2, ALB, etc.).
+
+**Webservice (Python / FastAPI)**
+
+- `python3 -m venv venv` (ou `python3.10 -m venv venv`) — Créer l’environnement virtuel Python.
+- `venv/bin/pip install -r requirements.txt` — Installer les dépendances du webservice.
+- `venv/bin/python app.py` — Lancer le serveur FastAPI (port 8080).
+
+**Webapp (React)**
+
+- `npm install` — Installer les dépendances Node.
+- `npm start` — Lancer l’application React en dev (ex. port 3000).
+
+**Tests API (curl)**
+
+- `curl -s http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts` — Récupérer tous les posts.
+- `curl -s "http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts?user=..."` — Récupérer les posts d’un user.
+- `curl -X POST http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts -H "Content-Type: application/json" -H "authorization: ..." -d '{"title":"...","body":"..."}'` — Créer un post.
+- `curl -X DELETE "http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts/<post_id>" -H "authorization: ..."` — Supprimer un post.
+- `curl -s "http://web-alb-823642335.us-east-1.elb.amazonaws.com/signedUrlPut?filename=...&filetype=...&postId=..." -H "authorization: ..."` — Obtenir une URL présignée pour upload S3.
