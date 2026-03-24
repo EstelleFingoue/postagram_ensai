@@ -74,28 +74,6 @@ La section suivante détaille les modifications réalisées pour le TP et commen
 
 ---
 
-## Étape 0 – Livrables et configuration du projet
-
-**Objectif :** avoir un compte rendu et un `.gitignore` adapté au projet.
-
-**Fichiers créés/modifiés :**
-
-- **Fichier :** `readme_cr.md`  
-  Modification : création.  
-  Valeurs : ce compte rendu.  
-  Raison : livrable demandé par le sujet.
-
-- **Fichier :** `.gitignore`  
-  Modification : ajouts.  
-  Valeurs : `readme_cursor.md`, `open tofu/.terraform`, `open tofu/output/`, `open tofu/*.tfstate`, `open tofu/*.tfstate.backup`, `webservice/.env`, `webservice/venv/`, `webservice/__pycache__/`, `.DS_Store`.  
-  Raison : ne pas versionner fichiers temporaires, états OpenTofu, secrets, environnements virtuels et caches.
-
-**Commandes exécutées :** aucune (création et édition de fichiers uniquement).
-
-**Vérification :** Nous avons créé readme_cr.md et mis à jour le .gitignore.
-
----
-
 ## Étape 1 – OpenTofu : S3 et DynamoDB
 
 **Objectif :** créer le bucket S3 et la table DynamoDB pour le stockage des images et des posts (sujet).
