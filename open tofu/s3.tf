@@ -4,7 +4,7 @@ resource "aws_s3_bucket" "bucket" {
   bucket_prefix = "postagram-"
   force_destroy  = true
 }
-# Notes: bucket_prefix donne un nom unique au bucket (évite les conflits). force_destroy permet de vider et supprimer le bucket avec tofu destroy (sujet : stocker les images).
+# Notes: bucket_prefix donne un nom unique au bucket (évite les conflits). force_destroy permet de vider et supprimer le bucket avec tofu destroy.
 
 # A décommenter seulement quand le bucket est défini
 output "bucketname" {
