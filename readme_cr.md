@@ -321,23 +321,6 @@ URL du Load Balancer utilisée dans les exemples : `web-alb-823642335.us-east-1.
 
 ---
 
-## Correctifs et améliorations (post-TP)
-
-Modifications effectuées après les étapes principales pour faire fonctionner ou stabiliser l’application (backend uniquement).
-
-### webservice/app.py
-
-- **Ordre chargement**  
-  Modification : `load_dotenv()` puis `from getSignedUrl import getSignedUrl`.  
-  Raison : déjà documenté en Étape 2 — BUCKET doit être chargé avant l’import de getSignedUrl.
-
-- **Routes signedUrlPut (GET /getSignedUrlPut, GET /signedUrlPut)**  
-  Modification : validation et gestion d’erreurs.  
-  Valeurs : vérification authorization (sinon 401), filename/filetype/postId non vides (sinon 400), BUCKET défini (sinon 503) ; try/except autour de getSignedUrl avec retour 500 et détail.  
-  Raison : éviter erreurs "expected string or bytes-like object, got NoneType" et renvoyer des réponses HTTP claires.
-
----
-
 ## Cheatsheet des commandes
 
 Aide-mémoire : commande et rôle.
