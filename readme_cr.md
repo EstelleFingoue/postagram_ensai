@@ -78,8 +78,6 @@ La section suivante détaille les modifications réalisées pour le TP et commen
 
 **Objectif :** créer le bucket S3 et la table DynamoDB pour le stockage des images et des posts (sujet).
 
-**Prérequis :** AWS configuré (credentials), OpenTofu installé.
-
 **Fichiers modifiés :** `open tofu/s3.tf`, `open tofu/dynamodb.tf`.
 
 ### open tofu/s3.tf
