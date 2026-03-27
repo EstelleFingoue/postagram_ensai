@@ -1,9 +1,9 @@
 # Compte rendu – TP noté 2 Postagram
 
 **Membres du groupe :**
-
-- Estelle Danielle FINGOUE
 - Rosine SORO
+- Estelle Danielle FINGOUE
+
 
 Ce document décrit le travail réalisé pour le devoir noté 2 (Postagram). Le sujet officiel est dans `readme.md`.
 
