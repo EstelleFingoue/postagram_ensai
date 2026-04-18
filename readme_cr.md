@@ -64,7 +64,7 @@ curl -s http://web-alb-823642335.us-east-1.elb.amazonaws.com/posts
 
 D’autres exemples de commandes curl sont donnés dans la section « Étape 7/8 – Vérification et rendu » et dans le cheatsheet en fin de document.
 
-**Test du backend en local (optionnel)** : dans `webservice`, créer le venv (`python3 -m venv venv`), installer les dépendances (`venv/bin/pip install -r requirements.txt`), puis lancer `venv/bin/python app.py` et tester avec `curl http://localhost:8080/posts`, etc.
+**Test du backend en local ** : dans `webservice`, créer le venv (`python3 -m venv venv`), installer les dépendances (`venv/bin/pip install -r requirements.txt`), puis lancer `venv/bin/python app.py` et tester avec `curl http://localhost:8080/posts`, etc.
 
 ---
 
